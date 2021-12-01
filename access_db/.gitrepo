@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/Casa-dos-Ventos/access_db
+	branch = main
+	commit = 021e8e0660a1ed44acfe31e1ae748271348716a4
+	parent = 7d3ad429d39bb15eb86044e7e4af2d3b92b8598b
+	method = merge
+	cmdver = 0.4.3
