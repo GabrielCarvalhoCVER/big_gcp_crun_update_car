@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/Casa-dos-Ventos/gcp_functions
+	branch = main
+	commit = 3718830e98e7c6c909be31d30e695fcb2255d5ff
+	parent = d80f65c6ce15c6487ce9d2d2b3557d701e9dff79
+	method = merge
+	cmdver = 0.4.3
