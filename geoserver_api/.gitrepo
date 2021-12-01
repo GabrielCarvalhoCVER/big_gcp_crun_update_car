@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/Casa-dos-Ventos/geoserver_api
+	branch = main
+	commit = fe23d0cd7e4850ab804ab7c2a9c5fd7429308f11
+	parent = bb1d96b6b2b7f8eab0fd37885073b9fa26e31fcc
+	method = merge
+	cmdver = 0.4.3
