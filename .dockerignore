@@ -1,0 +1,5 @@
+credentials/*
+local_tester.py
+cloud_tester.py
+logs.txt
+comando.txt
