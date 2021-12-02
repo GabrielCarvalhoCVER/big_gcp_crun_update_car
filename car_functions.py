@@ -38,7 +38,7 @@ import settings
 from captcha.breaker.captcha_breaker import captcha_breaker, preprocess_img, load_model_and_encoder
 # from captcha.breaker.captcha_breaker import captcha_breaker, preprocess_img, load_model_and_encoder
 
-def download_captcha_img(driver):
+def download_captcha_img(driver, download_image_path:str='/tmp'):
 
 	captcha_img = driver.find_element_by_id('img-captcha-base-downloads')
 
@@ -55,7 +55,7 @@ def download_captcha_img(driver):
 		ele.dispatchEvent(new Event('load'));
 		""", captcha_img)
 
-	with open(r"captcha.png", 'wb') as f:
+	with open(os.path.join(download_image_path,r"captcha.png"), 'wb') as f:
 		f.write(base64.b64decode(img_captcha_base64))
 	
 def get_url_twice(driver, url):
@@ -68,23 +68,21 @@ def get_url_twice(driver, url):
 			print('Loading Page: Second time')
 			driver.get(url)
 
-def captcha_breaker_loop(driver, model, lb, file_name):
+def captcha_breaker_loop(driver, model, lb, file_name:str, download_path:str=settings.DOWNLOAD_PATH , download_image_path:str='/tmp'):
 
 	i = 0 
 	
-	file_path = os.path.join(settings.DOWNLOAD_PATH, file_name)
+	file_path = os.path.join(download_path, file_name)
 	file_path_downloading = file_path + '.crdownload'
 
 	file_downloaded = os.path.exists(file_path)
 	file_downloading = os.path.exists(file_path_downloading)
 
-		
-	
 	print('-')
 	while not(file_downloaded or file_downloading):
 		
 		try:
-			os.remove('captcha.png')
+			os.path.join(download_image_path, r"captcha.png")
 		except OSError:
 			pass
 		
@@ -96,10 +94,11 @@ def captcha_breaker_loop(driver, model, lb, file_name):
 
 		time.sleep(1)
 
-		download_captcha_img(driver)
+		download_captcha_img(driver, download_image_path=download_image_path)
+		download_image_filepath = os.path.join(download_image_path, r"captcha.png")
 
 		print('Preprocessing Image [' + str(i+1) + ']')
-		captcha_processed = preprocess_img('captcha.png')
+		captcha_processed = preprocess_img(download_image_filepath)
 
 		print('Breaking Captcha [' + str(i+1) + ']')
 		captcha = captcha_breaker(captcha_processed, model, lb)
@@ -138,7 +137,7 @@ def captcha_breaker_loop(driver, model, lb, file_name):
 
 	close_button.click()
 
-	os.remove('captcha.png')
+	os.remove(download_image_filepath)
 	
 	if file_downloading and not file_downloaded:
 		file_state = 'Downloading'
@@ -147,11 +146,11 @@ def captcha_breaker_loop(driver, model, lb, file_name):
 	
 	return i, file_state
 
-def wait_for_download(file_name):
+def wait_for_download(file_name, download_path:str=settings.DOWNLOAD_PATH):
 
 	waiting_iterations = 0
 	
-	file_path = os.path.join(settings.DOWNLOAD_PATH, file_name)
+	file_path = os.path.join(download_path, file_name)
 	file_path_downloading = file_path + '.crdownload'
 
 	file_downloading = os.path.exists(file_path_downloading)
@@ -190,7 +189,7 @@ def wait_for_download(file_name):
 
 	#		 print('File already downloaded')
 
-def dowload_car_with_driver(city, state, driver, model, lb):
+def dowload_car_with_driver(city, state, driver, model, lb, download_path:str=settings.DOWNLOAD_PATH):
 	print('Loading Page')
 	get_url_twice(driver, settings.CAR_BASE_URL + state)
 	print('Page Loaded')
@@ -236,7 +235,7 @@ def dowload_car_with_driver(city, state, driver, model, lb):
 
 	count = 0
 	
-	file_path = os.path.join(settings.DOWNLOAD_PATH, file_name)
+	file_path = os.path.join(download_path, file_name)
 
 	file_path_downloading = file_path + '.crdownload'
 	file_downloading = os.path.exists(file_path_downloading)
@@ -244,7 +243,7 @@ def dowload_car_with_driver(city, state, driver, model, lb):
 	print('Breaking captcha')
 	while count <= 0:
 		try:
-			count, file_state = captcha_breaker_loop(driver, model, lb, file_name)
+			count, file_state = captcha_breaker_loop(driver, model, lb, file_name, download_path=download_path)
 
 		except Exception as err:
 			print('Error :' + str(err))
@@ -255,28 +254,29 @@ def dowload_car_with_driver(city, state, driver, model, lb):
 	# print('Wait for Download')
 	#wait_for_download(file_name)
 
-def download_car(df=None, city=None, state=None):
+def download_car(df_cities=None, city=None, state=None, download_path:str=settings.DOWNLOAD_PATH)->pd.DataFrame:
 	start_time = datetime.datetime.now((pytz.timezone('America/Sao_Paulo')))
 	print('Start Time : '+str(start_time))
 	
 	print('Checking folder existence')
 
-	if not(os.path.exists(settings.DOWNLOAD_PATH)): 
-		os.makedirs(settings.DOWNLOAD_PATH)
+	if not(os.path.exists(download_path)): 
+		os.makedirs(download_path)
 		print('Folder created')
 	else: 
 		print('Folder already exists')
 
-	print(f'Initialization of the driver {settings.CHROMEDRIVER_FILE}')
+	print(f'driver Options {settings.CHROMEDRIVER_FILE}')
 	chrome_options = Options()
 	chrome_options.add_argument('--no-sandbox')
 	chrome_options.add_argument("--headless")
 	chrome_options.add_argument('--disable-dev-shm-usage')
 	prefs = {}
 	prefs["profile.default_content_settings.popups"]=0
-	prefs["download.default_directory"]=settings.DOWNLOAD_PATH
+	prefs["download.default_directory"]=download_path
 	chrome_options.add_experimental_option("prefs", prefs)
 
+	print(f'Initialization of the driver {settings.CHROMEDRIVER_FILE}')
 	driver = webdriver.Chrome(settings.CHROMEDRIVER_FILE, options = chrome_options)
 	print('Driver Initializated')
 
@@ -286,17 +286,17 @@ def download_car(df=None, city=None, state=None):
 
 	count = 0
 
-	if df is not None:
+	if df_cities is not None:
 		# df = args[0]
-		n_row = len(df)
-		df['Download State'] =''
-		if (settings.CITYID_COLUMN in df.columns):
+		n_row = len(df_cities)
+		df_cities['Download State'] =''
+		if (settings.CITYID_COLUMN in df_cities.columns):
 			print('Selected Model via cityid_column')
 
 			try: 
-				city_list = df.loc[:, [settings.CITYID_COLUMN, settings.CITY_COLUMN, settings.STATE_COLUMN]].copy()
+				city_list = df_cities.loc[:, [settings.CITYID_COLUMN, settings.CITY_COLUMN, settings.STATE_COLUMN]].copy()
 			except: 
-				city_list = df.loc[:, [settings.CITYID_COLUMN, settings.STATE_COLUMN]].copy()
+				city_list = df_cities.loc[:, [settings.CITYID_COLUMN, settings.STATE_COLUMN]].copy()
 
 			city_list.sort_values(settings.STATE_COLUMN, axis=0, ascending=True, inplace=True)
 
@@ -329,7 +329,7 @@ def download_car(df=None, city=None, state=None):
 					start_city_time = datetime.datetime.now((pytz.timezone('America/Sao_Paulo')))
 					print('-Start City Time : '+str(start_city_time)+ '-')
 
-					file_path = os.path.join(settings.DOWNLOAD_PATH, 'SHAPE_' + str(city) + '.zip')
+					file_path = os.path.join(download_path, 'SHAPE_' + str(city) + '.zip')
 					file_downloaded = os.path.exists(file_path)
 					file_path_downloading = file_path + '.crdownload'
 					file_downloading = os.path.exists(file_path_downloading)
@@ -345,7 +345,7 @@ def download_car(df=None, city=None, state=None):
 							os.remove(file_path_downloading)
 						try:
 							print("-File DOES NOT EXISTS-")
-							file_state = dowload_car_with_driver(int(city), state, driver, model, lb)
+							file_state = dowload_car_with_driver(int(city), state, driver, model, lb, download_path=download_path)
 							df_file_state = df_file_state.append(pd.DataFrame({
 																		settings.CITYID_COLUMN:[city], 
 																		'file_path_downloading':[file_path_downloading], 
@@ -377,9 +377,9 @@ def download_car(df=None, city=None, state=None):
 			print('-Elapsed Total Time : '+str(end_time - start_time)+ '-')
 			# return df
 					
-		elif (settings.CITY_COLUMN in df.columns):
+		elif (settings.CITY_COLUMN in df_cities.columns):
 			print('city_column  :' + settings.CITY_COLUMN)
-			city_list = df.loc[:, [settings.CITY_COLUMN, settings.STATE_COLUMN]]
+			city_list = df_cities.loc[:, [settings.CITY_COLUMN, settings.STATE_COLUMN]]
 
 			city_list.sort_values(settings.STATE_COLUMN, axis=0, ascending=True, inplace=True)
 
@@ -400,18 +400,18 @@ def download_car(df=None, city=None, state=None):
 
 					city_names.append(element.text.lower())
 
-				for _, row in current_cities.iterrows():
+				for idx_row , row in current_cities.iterrows():
 
 					count = 0
 					city = row[settings.CITY_COLUMN].lower()
 
-					dowload_car_with_driver(city, state, driver, model, lb)
+					dowload_car_with_driver(city, state, driver, model, lb, download_path=download_path)
 
 					time.sleep(1)
 
 	elif (city is not None) and (state is not None):
 
-		dowload_car_with_driver(city, state, driver, model, lb)
+		dowload_car_with_driver(city, state, driver, model, lb, download_path=download_path)
 		
 	else:
 
@@ -420,6 +420,8 @@ def download_car(df=None, city=None, state=None):
 		raise TypeError('You must input a a city and a state, or a shapefile')
 
 	driver.close()
+
+	return df_cities
 
 def filter_by_state(shp, state):
 

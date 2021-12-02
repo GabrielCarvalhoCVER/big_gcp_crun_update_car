@@ -1,9 +1,9 @@
-FROM python:3.9
+FROM python:3.7
 
 
 RUN apt-get update -y
 
-RUN apt -y install ./chrome/google-chrome-96.deb
+RUN apt -y install ./chrome/google-chrome-86.deb
 
 COPY requirements.txt ./
 
