@@ -146,7 +146,7 @@ def upsert_db(gdf:Union[pd.DataFrame,gpd.GeoDataFrame], schema:str, table:str, e
 	sql_str = f"""
 		INSERT INTO {schema}.{table} ( {gdf.index.name} , {','.join(gdf.columns)} ) 
 		select * from (values{bn}{bt}{bt} ( {f'),{bn}{bt}{bt}('.join([','.join([ f"'{str(val)}'::{col_db_type[idx]}" for idx,val in enumerate(row)]) for ind, row in gdf.reset_index().iterrows()])} )
-		) as t({gdf.index.name} ',' {','.join(gdf.columns)} )
+		) as t({gdf.index.name} , {','.join(gdf.columns)} )
 		on conflict ({gdf.index.name}) do update 
 		set 
 		{bt} {f',{bn}{bt}{bt}'.join(gdf.columns + ' = excluded.' + gdf.columns)} 
