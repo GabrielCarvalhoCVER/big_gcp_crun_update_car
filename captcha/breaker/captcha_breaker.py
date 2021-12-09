@@ -20,13 +20,18 @@
 #  \_____\__,_|___/\__,_|  \__,_|\___/|___/	 \/ \___|_| |_|\__\___/|___/
 #
 
-from joblib	   import load
+from joblib	   import load, Memory as jl_Memory
 from keras.models import load_model
+from keras import Model as K_Model
+
 import numpy	  as np
 import cv2
 # from  car.captcha.settings as settings
 from  .. import settings
 # from  ..settings import  settings
+from typing import Tuple
+
+
 
 def get_letters(img, letter_image_regions):
 
@@ -128,7 +133,7 @@ def break_letters(img):
 
 	return letters
 
-def load_model_and_encoder():
+def load_model_and_encoder()->Tuple[K_Model, jl_Memory]:
 	#  print(settings.CLASSIFIER_MODEL_FILE)
 
 	model = load_model(settings.CLASSIFIER_MODEL_FILE)
@@ -136,7 +141,8 @@ def load_model_and_encoder():
 
 	return model, lb
 
-def preprocess_img(img_input):
+
+def preprocess_img(img_input:str):
 
 	captcha = cv2.imread(img_input, cv2.IMREAD_UNCHANGED)
 
@@ -225,6 +231,7 @@ def captcha_breaker(img, model=None, lb=None):
 		letter =  np.array(letter, dtype="float") / 255.0
 
 		letter = letter.reshape(50, 40, 1)
+		# letter = letter.reshape(1, 50, 40)
 
 		letter = letter.T
 
@@ -232,10 +239,8 @@ def captcha_breaker(img, model=None, lb=None):
 
 	letters_pred = np.array(letters_pred)
 
-	print(f'captcha_breaker {3}')
 	pred = model.predict(letters_pred)
 
-	print(f'captcha_breaker {4}')
 	pred = ''.join(list(lb.inverse_transform(pred)))
-
+	
 	return pred

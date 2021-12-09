@@ -146,7 +146,7 @@ def get_cars_gdf(car_file:str, path_car_folder:str, df_cities:Union[pd.DataFrame
 		if idx%20==0:
 			print(f'{idx}  of {n_row}')
 
-		print(f'path_car_folder {path_car_folder}')
+		# print(f'path_car_folder {path_car_folder}')
 		path_car_file = os.path.join(path_car_folder, name)
 		try:
 			gdfs_car = gdfs_car.append(get_car_gdf(car_file=car_file, path_car_file=path_car_file))
@@ -235,27 +235,37 @@ def run_get_cars(df_cities:pd.DataFrame, gdrive_client:Union[GDrive_Client,None]
 	download_car(df_cities=df_cities, download_path=path_car_folder)
 
 	########################################################################################################################
-
+	print()	
+	print('#'*200)	
+	print()	
+	print(f'{str(get_now_sp())[:19]} - reading area_imovel')
 	cars_gdf_imovel = get_cars_gdf(car_file='area_imovel', path_car_folder=path_car_folder, df_cities=df_cities)
-	print(f'len {len(cars_gdf_imovel)}')
+	print(f'{str(get_now_sp())[:19]} - len {len(cars_gdf_imovel)}')
 	
 	if update:
 		engrawconn_db, engrawconn_db_none = get_eng_and_rawconn(engrawconn_db=engrawconn_db)
-		upd_cars_imovel = update_db(gdf=cars_gdf_imovel, schema='externo',table='carimovel_upload', crud=crud, crud_function='function_carimovel_crud', force_print=force_print )
+		upd_cars_imovel = update_db(gdf=cars_gdf_imovel, schema='externo',table='carimovel_upload', crud=crud, crud_function='function_carimovel_crud', force_print=force_print, updateIdValues=df_cities[settings.CITYID_COLUMN].to_list() )
 
-		print(f'upd_cars_imovel {upd_cars_imovel}')
+		print(f'{str(get_now_sp())[:19]} - upd_cars_imovel {upd_cars_imovel}')
 
 	########################################################################################################################
 
+	print()	
+	print('#'*200)	
+	print()	
+	print(f'{str(get_now_sp())[:19]} - reading reserva_legal')
 	cars_gdf_reserva = get_cars_gdf(car_file='reserva_legal', path_car_folder=path_car_folder, df_cities=df_cities)
 	# print(cars_df)
-	print(f'len {len(cars_gdf_reserva)}')
+	print(f'{str(get_now_sp())[:19]} - len {len(cars_gdf_reserva)}')
 	
 	if update:
-		upd_cars_reserva = update_db(gdf=cars_gdf_reserva, schema='externo',table='carreserva_upload', crud=crud, crud_function='function_carreserva_crud', force_print=force_print)
+		upd_cars_reserva = update_db(gdf=cars_gdf_reserva, schema='externo',table='carreserva_upload', crud=crud, crud_function='function_carreserva_crud', force_print=force_print, updateIdValues=df_cities[settings.CITYID_COLUMN].to_list())
 	
-		print(f'upd_cars_reserva {upd_cars_reserva}')
+		print(f'{str(get_now_sp())[:19]} - upd_cars_reserva {upd_cars_reserva}')
 
 		close_rawconn_and_disp_eng(engrawconn_db=engrawconn_db , engrawconn_db_none=engrawconn_db_none)
+
+	print()	
+	print('#'*200)	
 
 	########################################################################################################################

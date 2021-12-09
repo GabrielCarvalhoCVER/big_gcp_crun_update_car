@@ -31,6 +31,7 @@ if platform.system() == 'Linux':
 
 	CHROMEDRIVER_FOLDER   = os.path.realpath(os.path.join(__file__,os.pardir,'chrome'))
 	DOWNLOAD_PATH = os.path.abspath('/tmp/SHAPES CAR '+ datetime.today().strftime('%Y-%m-%d'))
+	DOWNLOAD_IMAGE_PATH = os.path.abspath('/tmp/captchas')
 	CHROMEDRIVER_FILE   = os.path.join(CHROMEDRIVER_FOLDER, 'chromedriver96')
 
 # elif platform.system() == 'Windows':
@@ -47,10 +48,11 @@ CAR_LAYERS = ['APP', 'AREA_IMOVEL', 'BANHADO', 'HIDROGRAFIA', 'MANGUEZAL',\
 	'RESERVA_LEGAL', 'RESTINGA', 'SERVIDAO_ADMINISTRATIVA', 'USO_RESTRITO',\
 	'VEREDA']
 
-OUTPUT_FOLDER	= './output_car/'
-CITY_COLUMN		= 'NOM_MUNICIP'
-CITYID_COLUMN	= 'COD_MUNICIP'
-STATE_COLUMN	= 'UF'
+OUTPUT_FOLDER		= './output_car/'
+CITY_COLUMN			= 'NOM_MUNICIP'
+CITYID_COLUMN		= 'COD_MUNICIP'
+STATE_COLUMN		= 'UF'
+DTDOWNLOAD_COLUMN	= 'DT_DOWNLOAD'
 CAR_BASE_URL	= 'http://www.car.gov.br/publico/municipios/downloads?sigla='
 # DOWNLOAD_PATH		 = '/mnt/c/Users/lucio.paiva/Downloads/' #os.path.join(os.path.expanduser('~'), 'Downloads')
 MAX_WAIT_ITERATIONS   = 1000
