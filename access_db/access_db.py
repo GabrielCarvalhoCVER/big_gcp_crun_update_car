@@ -182,8 +182,11 @@ def get_engine_str_with_json(db_json:dict, use_cloud_sql_name:Union[bool,None]=N
 
 	return URL
 
-def get_engine_str_with_secret(db_secret_id:str, db_project_id:str, use_cloud_sql_name:Union[bool,None]=None, force_print:bool=False )->str:
-	from access_db.gcp_clients.gcp_client_secretmanager import SecretManager_Client
+def get_engine_str_with_secret(db_secret_id:str, db_project_id:str, use_cloud_sql_name:Union[bool,None]=None, force_print:bool=False ):
+	try:
+		from access_db.gcp_clients.gcp_client_secretmanager import SecretManager_Client
+	except:
+		from .gcp_clients.gcp_client_secretmanager import SecretManager_Client
 
 	secretmanager_client = SecretManager_Client()
 	secret_json = secretmanager_client.get_secret( secret_id=db_secret_id , project_id=db_project_id )
