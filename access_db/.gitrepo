@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://github.com/Casa-dos-Ventos/access_db
 	branch = main
-	commit = 021e8e0660a1ed44acfe31e1ae748271348716a4
-	parent = 7d3ad429d39bb15eb86044e7e4af2d3b92b8598b
+	commit = a0a5915bd2bbc6f4273177f4315d3b1c8476212d
+	parent = d73ac0d2f40b7367b291b718b6612d8765dd8e53
 	method = merge
 	cmdver = 0.4.3
