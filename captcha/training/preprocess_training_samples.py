@@ -30,105 +30,115 @@ from captcha import settings
 
 # Removes red line from images
 
-def preprocess_samples():
+def preprocess_samples(folderpath_generated:str=settings.GENERATED_CAPTCHA_FOLDER, folderpath_preprocessed:str=settings.PREPROCESSED_CAPTCHA_FOLDER ):
 
-	if not os.path.isdir(settings.PREPROCESSED_CAPTCHA_FOLDER):
+	if not os.path.isdir(folderpath_preprocessed):
 
-		os.mkdir(settings.PREPROCESSED_CAPTCHA_FOLDER)
+		os.mkdir(folderpath_preprocessed)
 
-	files = sorted(os.listdir(settings.GENERATED_CAPTCHA_FOLDER))
+	print(f'folderpath_generated [{folderpath_generated}]')
+	print(f'folderpath_preprocessed [{folderpath_preprocessed}]')
+
+	files = sorted(os.listdir(folderpath_generated))
 	print(f'len(files) {len(files)}')
 
+	print(f'settings.GENERATED_CAPTCHA_PATTERN [{settings.GENERATED_CAPTCHA_PATTERN}]')
 	captchas = [bool(re.match(settings.GENERATED_CAPTCHA_PATTERN, i)) for i in files]
 	print(f'len(captchas) {len(captchas)}')
 
 	captchas = list(compress(files, captchas))
 	print(f'len(captchas)2 {len(captchas)}')
+	
+	n_samples = len(captchas)
+		
+	for i, captcha in enumerate(captchas,0):
 
-	for i in range(len(captchas)):
-		print(i)
+		if (i+1)%500==0:
+			print(f'{i+1} of {n_samples} [{round(float(i+1)/float(n_samples)*100,1)}%]')
 
-		captcha = captchas[i]
 
-		captcha = cv2.imread(settings.GENERATED_CAPTCHA_FOLDER + captcha, cv2.IMREAD_UNCHANGED)
+		sample_index = int(re.findall('\d+', captcha)[0])
+		captcha_preprocessed_filepath = os.path.join(folderpath_preprocessed , settings.PREPROCESSED_NAME_FORMAT.format(sample_index) + '.bmp')
 
-		kernel = np.ones((4, 4),np.uint8)
-		erosion = cv2.erode(captcha, kernel, iterations = 1)
-		captcha = cv2.dilate(erosion, kernel, iterations = 1)
+		if not(os.path.exists(captcha_preprocessed_filepath)):
 
-		text = captcha[:,:,3]
+			captcha = cv2.imread(os.path.join(folderpath_generated, captcha), cv2.IMREAD_UNCHANGED)
 
-		line = captcha[:,:,2]
+			kernel = np.ones((4, 4),np.uint8)
+			erosion = cv2.erode(captcha, kernel, iterations = 1)
+			captcha = cv2.dilate(erosion, kernel, iterations = 1)
 
-		line2 = line > settings.GRAYSCALE_THRESHOLD
+			text = captcha[:,:,3]
 
-		line3 = [[np.uint8(y)*np.uint8(settings.NP_UINT8_MAX) for y in x] for x in line2]
+			line = captcha[:,:,2]
 
-		line3 = np.reshape(line3, (settings.IMG_HEIGHT, settings.IMG_WIDTH))
+			line2 = line > settings.GRAYSCALE_THRESHOLD
 
-		text2 = text > settings.GRAYSCALE_THRESHOLD
+			line3 = [[np.uint8(y)*np.uint8(settings.NP_UINT8_MAX) for y in x] for x in line2]
 
-		text3 = [[np.uint8(y)*np.uint8(settings.NP_UINT8_MAX) for y in x] for x in text2]
+			line3 = np.reshape(line3, (settings.IMG_HEIGHT, settings.IMG_WIDTH))
 
-		text3 = np.reshape(text3, (settings.IMG_HEIGHT, settings.IMG_WIDTH))
+			text2 = text > settings.GRAYSCALE_THRESHOLD
 
-		text_wo_line = text3 - line3
+			text3 = [[np.uint8(y)*np.uint8(settings.NP_UINT8_MAX) for y in x] for x in text2]
 
-		text_wo_line = [[np.uint8(y > settings.GRAYSCALE_THRESHOLD)*np.uint8(settings.NP_UINT8_MAX) for y in x] for x in text_wo_line]
+			text3 = np.reshape(text3, (settings.IMG_HEIGHT, settings.IMG_WIDTH))
 
-		text_wo_line = np.reshape(text_wo_line, (settings.IMG_HEIGHT, settings.IMG_WIDTH))
+			text_wo_line = text3 - line3
 
-		# get the bounding rect
-		if cv2.__version__[0] == '3':
+			text_wo_line = [[np.uint8(y > settings.GRAYSCALE_THRESHOLD)*np.uint8(settings.NP_UINT8_MAX) for y in x] for x in text_wo_line]
 
-			_, contours, _ = cv2.findContours(text_wo_line, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+			text_wo_line = np.reshape(text_wo_line, (settings.IMG_HEIGHT, settings.IMG_WIDTH))
 
-		elif cv2.__version__[0] == '4':
+			# get the bounding rect
+			if cv2.__version__[0] == '3':
 
-			contours, _ = cv2.findContours(text_wo_line, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+				_, contours, _ = cv2.findContours(text_wo_line, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
 
-		else:
+			elif cv2.__version__[0] == '4':
 
-			pass
+				contours, _ = cv2.findContours(text_wo_line, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
 
-		x1 = settings.IMG_WIDTH / 2
+			else:
 
-		x2 = settings.IMG_WIDTH / 2
+				pass
 
-		y1 = settings.IMG_HEIGHT / 2
+			x1 = settings.IMG_WIDTH / 2
 
-		y2 = settings.IMG_HEIGHT / 2
+			x2 = settings.IMG_WIDTH / 2
 
-		for c in contours:
+			y1 = settings.IMG_HEIGHT / 2
 
-			x, y, w, h = cv2.boundingRect(c)
+			y2 = settings.IMG_HEIGHT / 2
 
-			if x < x1:
+			for c in contours:
 
-				x1 = x
+				x, y, w, h = cv2.boundingRect(c)
 
-			if x2 < x + w:
+				if x < x1:
 
-				x2 = x + w
+					x1 = x
 
-			if y < y1:
+				if x2 < x + w:
 
-				y1 = y
+					x2 = x + w
 
-			if y2 < y + h:
+				if y < y1:
 
-				y2 = y + h
+					y1 = y
 
-		y1 = int(y1)
-		y2 = int(y2)
-		x1 = int(x1)
-		x2 = int(x2)
+				if y2 < y + h:
 
-		sample_cropped = text_wo_line[y1:y2, x1:x2]
+					y2 = y + h
 
-		sample_cropped = cv2.resize(sample_cropped, (settings.IMG_WIDTH, settings.IMG_HEIGHT))
+			y1 = int(y1)
+			y2 = int(y2)
+			x1 = int(x1)
+			x2 = int(x2)
 
-		sample_index = int(re.findall('\d+', captchas[i])[0])
+			sample_cropped = text_wo_line[y1:y2, x1:x2]
 
-		cv2.imwrite(settings.PREPROCESSED_CAPTCHA_FOLDER + \
-					settings.PREPROCESSED_NAME_FORMAT.format(sample_index) + '.bmp', sample_cropped)
+			sample_cropped = cv2.resize(sample_cropped, (settings.IMG_WIDTH, settings.IMG_HEIGHT))
+
+
+			cv2.imwrite(captcha_preprocessed_filepath, sample_cropped)

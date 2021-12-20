@@ -230,10 +230,10 @@ def captcha_breaker(img, model=None, lb=None):
 
 		letter =  np.array(letter, dtype="float") / 255.0
 
+		# letter = letter.reshape(50, 40, 1)
 		letter = letter.reshape(50, 40, 1)
-		# letter = letter.reshape(1, 50, 40)
 
-		letter = letter.T
+		# letter = letter.T
 
 		letters_pred.append(letter)
 

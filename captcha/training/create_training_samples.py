@@ -34,12 +34,17 @@ sample_names   = []
 
 sample_answers = []
 
-def create_samples():
-	if not os.path.isdir(settings.GENERATED_CAPTCHA_FOLDER):
+def create_samples(folderpath_generated:str=settings.GENERATED_CAPTCHA_FOLDER, n_samples:int=settings.NUM_SAMPLES):
+	if not os.path.isdir(folderpath_generated):
 
-		os.mkdir(settings.GENERATED_CAPTCHA_FOLDER)
+		os.mkdir(folderpath_generated)	
 
-	for sample in range(settings.NUM_SAMPLES):
+	print(f'folderpath_generated [{folderpath_generated}]')
+	print(n_samples)
+	for idx, sample in enumerate(range(n_samples),0):
+		
+		if (idx+1)%500==0:
+			print(f'{idx+1} of {n_samples} [{round(float(idx+1)/float(n_samples)*100,1)}%]')
 		# Generate random string
 		captcha_code = ''.join(random.choice(string.ascii_uppercase + \
 											 string.ascii_lowercase + \
@@ -143,8 +148,7 @@ def create_samples():
 		img[:,:,3] = text_distorted
 
 		# Write image file
-		cv2.imwrite(settings.GENERATED_CAPTCHA_FOLDER + \
-					settings.SAMPLE_NAME_FORMAT.format(sample) + '.png', img)
+		cv2.imwrite(os.path.join(folderpath_generated , settings.SAMPLE_NAME_FORMAT.format(sample) + '.png'), img)
 
 		sample_names.append(settings.SAMPLE_NAME_FORMAT.format(sample))
 
@@ -156,4 +160,4 @@ def create_samples():
 
 	training_info = pd.DataFrame(training_info, columns = ['sample_name', 'sample_answer'])
 
-	training_info.to_csv(settings.TRAINING_ANSWERS_FILE, index = False)
+	training_info.to_csv(os.path.join(folderpath_generated, settings.TRAINING_ANSWERS_FILE), index = False)

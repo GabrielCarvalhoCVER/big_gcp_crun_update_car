@@ -121,10 +121,8 @@ def receive_request(request=None)->dict:
 	 
 	return "ok", 200
 
-def get_cars_gdf(car_file:str, path_car_folder:str, df_cities:Union[pd.DataFrame,None]=None)->gpd.GeoDataFrame:
+def get_cars_gdf(car_file:str, path_car_folder:str, df_cities:Union[pd.DataFrame,None]=None, return_bbox:bool=False)->gpd.GeoDataFrame:
 	# Necessário alterar a função ring_sample, a solução paleativa foi alterar o último else para return(xmean, ymean). Necessário declarar ambas variáveis o inicio da função.
-	#	
-	#	
 
 	if df_cities is None:
 
@@ -135,12 +133,12 @@ def get_cars_gdf(car_file:str, path_car_folder:str, df_cities:Union[pd.DataFrame
 		files_car = [ file for file in files_folder_car]
 
 	else:
-
-		files_car = [path_car_folder + '/SHAPE_' + x + '.zip' for x in df_cities['COD_MUNICIP']]
+		files_car = [path_car_folder + '/SHAPE_' + x for x in df_cities['COD_MUNICIP']]
 		# print(files_car)
 
 	n_row = len(files_car)
 	gdfs_car = gpd.GeoDataFrame()
+	if return_bbox: bbox_car = {}
 
 	for idx, name in enumerate(files_car,1): 
 		if idx%20==0:
@@ -149,20 +147,26 @@ def get_cars_gdf(car_file:str, path_car_folder:str, df_cities:Union[pd.DataFrame
 		# print(f'path_car_folder {path_car_folder}')
 		path_car_file = os.path.join(path_car_folder, name)
 		try:
-			gdfs_car = gdfs_car.append(get_car_gdf(car_file=car_file, path_car_file=path_car_file))
+			gdf_car_row = get_car_gdf(car_file=car_file, path_car_file=path_car_file)
+			if return_bbox: bbox_car[name] = gdf_car_row.bounds.to_dict(orient='index')[0] 
+			gdfs_car = gdfs_car.append(gdf_car_row)
 		except Exception as e:
 			print(f'{idx}  of {n_row}')
 			print(name)
 			print(f'error : {e}')
 		# print(name)
 	# print('oi')
-	gdfs_car = gdfs_car.drop(columns=['gid'])
+	# gdfs_car = gdfs_car.drop(columns=['gid'])
 	gdfs_car = gdfs_car.reset_index(drop=True)
+	if return_bbox:
+		return gdfs_car, bbox_car
+	else:
+		return gdfs_car
 
-	return gdfs_car
-
-def get_car_gdf(car_file:str, path_car_file:str)->gpd.GeoDataFrame:
-	data = ZipFile(path_car_file, 'r')
+def get_car_gdf_old(car_file:str, path_car_file:str)->gpd.GeoDataFrame:
+	
+	data = ZipFile(path_car_file, 'r')	
+	# if car_file+'.zip' in zips_namelist:
 	data2 = ZipFile(BytesIO(data.read(car_file.upper() + ".zip")),'r')
 	muni1_cod = int(os.path.basename(path_car_file).replace('SHAPE_','').replace('.zip',''))
 	namelist = data2.namelist()
@@ -189,13 +193,51 @@ def get_car_gdf(car_file:str, path_car_file:str)->gpd.GeoDataFrame:
 	gdf_car = gpd.GeoDataFrame(columns = fields, data = r.records(), geometry = r.shapes())
 	gdf_car.columns = gdf_car.columns.str.lower()
 	gdf_car = gdf_car.drop_duplicates()
-	gdf_car = gdf_car.reset_index().rename(columns ={'index':'gid'})
-	gdf_car['gid'] = gdf_car['gid']  + 1
+	# gdf_car = gdf_car.reset_index().rename(columns ={'index':'gid'})
+	# gdf_car['gid'] = gdf_car['gid']  + 1
 	gdf_car = gdf_car.set_crs(epsg=4674)
 	gdf_car = gdf_car.to_crs(epsg=4326)
 
 	# df_car = pd.DataFrame(gdf_car)
 	gdf_car['muni1_cod'] = muni1_cod
+	return gdf_car
+
+def get_car_gdf(car_file:str, path_car_file:str)->gpd.GeoDataFrame:
+	
+	data = ZipFile(path_car_file+'.zip', 'r')
+	zips_namelist = data.namelist()
+	zips_namelist_lower = [d.lower() for d in zips_namelist]
+	muni1_cod = int(os.path.basename(path_car_file).replace('SHAPE_','').replace('.zip',''))
+	
+	# car_file = car_file.upper()
+
+	pathzip_file = os.path.join(path_car_file, car_file+'.zip')
+
+	if os.path.exists(pathzip_file):
+		# print('a1')
+		gdf_car = gpd.read_file(pathzip_file)
+	else:
+		if car_file.lower() + '.zip' not in zips_namelist_lower:
+			# print('a2')
+			# print(zips_namelist)
+			gdf_car = gpd.GeoDataFrame()
+			return gdf_car
+		else:			
+			# if car_file+'.zip' in zips_namelist:
+			data.extract(zips_namelist[zips_namelist_lower.index(car_file.lower() + '.zip')], path=path_car_file)
+
+			gdf_car = gpd.read_file(pathzip_file)
+
+	gdf_car.columns = gdf_car.columns.str.lower()
+	gdf_car = gdf_car.drop_duplicates()
+	# gdf_car = gdf_car.reset_index().rename(columns ={'index':'gid'})
+	# gdf_car['gid'] = gdf_car['gid']  + 1
+	gdf_car = gdf_car.set_crs(epsg=4674)
+	gdf_car = gdf_car.to_crs(epsg=4326)
+
+	# df_car = pd.DataFrame(gdf_car)
+	gdf_car['muni1_cod'] = muni1_cod
+
 	return gdf_car
 
 def filter_df_cities(df_cities:pd.DataFrame, cities_list:Union[list,str])->pd.DataFrame:
@@ -226,20 +268,19 @@ def get_df_cities_from_gsheet(gsheet_client:Union[GSheet_Client,None]=None)->pd.
 
 def run_get_cars(df_cities:pd.DataFrame, gdrive_client:Union[GDrive_Client,None]=None, engrawconn_db=None, path_car_folder:str=settings.DOWNLOAD_PATH , update:bool=True ,crud:bool=True , force_print:bool=False):
 	
-
 	if gdrive_client is None:
 		gdrive_client = GDrive_Client(subject='big@casadosventos.com.br', saccount_email = 'gabriel-functions-caller@gisbicnet-3.iam.gserviceaccount.com')
 
 	########################################################################################################################
 
-	download_car(df_cities=df_cities, download_path=path_car_folder)
+	download_car(df_cities=df_cities, download_path=path_car_folder, force_print=force_print)
 
 	########################################################################################################################
 	print()	
 	print('#'*200)	
 	print()	
 	print(f'{str(get_now_sp())[:19]} - reading area_imovel')
-	cars_gdf_imovel = get_cars_gdf(car_file='area_imovel', path_car_folder=path_car_folder, df_cities=df_cities)
+	cars_gdf_imovel, bbox_imovel = get_cars_gdf(car_file='area_imovel', path_car_folder=path_car_folder, df_cities=df_cities, return_bbox=True)
 	print(f'{str(get_now_sp())[:19]} - len {len(cars_gdf_imovel)}')
 	
 	if update:
@@ -269,3 +310,39 @@ def run_get_cars(df_cities:pd.DataFrame, gdrive_client:Union[GDrive_Client,None]
 	print('#'*200)	
 
 	########################################################################################################################
+
+	df_cities_w_dtdownload = get_df_cities_with_dt_download(df_cities=df_cities , path_car_folder=path_car_folder)
+
+	if update and crud:
+		print(list(set(upd_cars_reserva + upd_cars_imovel)))
+		if list(set(upd_cars_reserva + upd_cars_imovel)) == ['executed'] :
+			upsert_db(gdf=df_cities_w_dtdownload , schema='externo', table='car_datadownload', force_print=False)
+			print(f'{str(get_now_sp())[:19]} - upsert em car_datadownload ok')
+
+	########################################################################################################################
+
+def get_df_cities_with_dt_download(df_cities:pd.DataFrame, path_car_folder:str=settings.DOWNLOAD_PATH, )->pd.DataFrame:
+	
+	df_cities_w_dtdownload = df_cities.copy()
+
+	for idx_df, row_df in enumerate(df_cities_w_dtdownload.itertuples(),1):
+		# print(idx)
+		# print(row_df)
+			# print(row_df.COD_MUNICIP)
+		cityid = row_df._asdict()[settings.CITYID_COLUMN]
+		file_path = os.path.join(path_car_folder, f'SHAPE_{cityid}.zip')
+		# print(f'file_path {file_path}')
+		mod_time = datetime.fromtimestamp(os.path.getmtime(file_path)).replace(microsecond=0)
+		# print(t)
+		df_cities_w_dtdownload.loc[df_cities_w_dtdownload[settings.CITYID_COLUMN] == cityid, settings.DTDOWNLOAD_COLUMN] = mod_time 
+			# print(f'os.path.getmtime(path) {datetime.fromtimestamp(t) }')
+
+	df_cities_w_dtdownload[settings.CITY_COLUMN] = df_cities_w_dtdownload[settings.CITY_COLUMN].str.replace("'","''")
+	df_cities_w_dtdownload.loc[:, settings.CITYID_COLUMN] = df_cities_w_dtdownload.loc[:, settings.CITYID_COLUMN].astype(int)
+	df_cities_w_dtdownload.loc[:, settings.DTDOWNLOAD_COLUMN] = pd.to_datetime(df_cities_w_dtdownload.loc[:, settings.DTDOWNLOAD_COLUMN])
+
+	df_cities_w_dtdownload.columns = get_clean_list(df_cities_w_dtdownload.columns)
+
+	df_cities_w_dtdownload = df_cities_w_dtdownload.set_index([settings.CITYID_COLUMN.lower()])
+	
+	return df_cities_w_dtdownload	

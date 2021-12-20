@@ -272,7 +272,7 @@ def dowload_car_with_driver(city:str, state:str, driver:webdriver.Chrome, model,
 	#wait_for_download(file_name)
 
 def download_car(df_cities:Union[pd.DataFrame, None]=None, city=None, state=None, download_path:str=settings.DOWNLOAD_PATH, download_image_path:str=settings.DOWNLOAD_IMAGE_PATH , force_print:bool=False)->pd.DataFrame:
-	start_time = datetime.datetime.now((pytz.timezone('America/Sao_Paulo')))
+	start_time = get_now_sp()
 	print('Start Time : '+str(start_time))
 	
 	# print('Checking folder existence')
@@ -283,7 +283,7 @@ def download_car(df_cities:Union[pd.DataFrame, None]=None, city=None, state=None
 	else: 
 		if force_print: print(f'Folder [{download_path}] already exists')
 	
-	driver = get_driver(download_path=download_path , force_print=True)
+	driver = None
 
 	if force_print: print('Loading model and encoder')
 	model, lb = load_model_and_encoder()
@@ -294,7 +294,6 @@ def download_car(df_cities:Union[pd.DataFrame, None]=None, city=None, state=None
 	if df_cities is not None:
 		# df = args[0]
 		n_row = len(df_cities)
-		df_cities['Download State'] =''
 		
 		if (settings.CITYID_COLUMN in df_cities.columns):
 			if force_print: print('Selected Model via cityid_column')
@@ -344,13 +343,20 @@ def download_car(df_cities:Union[pd.DataFrame, None]=None, city=None, state=None
 					
 					if file_downloaded:
 						if force_print: print('-File ALREADY EXISTS-')
+
 					else:
 						if file_downloading:
+
 							if force_print: print('-REMOVE File Downloading from Previous Try-')
 							os.remove(file_path_downloading)
+
 						try:
 							if force_print: print("-File DOES NOT EXISTS-")
-							file_state = dowload_car_with_driver(int(city), state, driver, model, lb, download_path=download_path, download_image_path=download_image_path)
+
+							if driver is None: 
+								driver = get_driver(download_path=download_path , force_print=True)
+
+							file_state = dowload_car_with_driver(int(city), state, driver, model, lb, download_path=download_path, download_image_path=download_image_path, force_print=force_print )
 							df_file_state = df_file_state.append(pd.DataFrame({
 																		settings.CITYID_COLUMN:[city], 
 																		'file_path_downloading':[file_path_downloading], 
@@ -380,38 +386,6 @@ def download_car(df_cities:Union[pd.DataFrame, None]=None, city=None, state=None
 			if force_print: print('-End Time : '+str(end_time) + '-')
 			if force_print: print('-Elapsed Total Time : '+str(end_time - start_time)+ '-')
 			# return df
-					
-		elif (settings.CITY_COLUMN in df_cities.columns):
-			print('city_column  :' + settings.CITY_COLUMN)
-			city_list = df_cities.loc[:, [settings.CITY_COLUMN, settings.STATE_COLUMN]]
-
-			city_list.sort_values(settings.STATE_COLUMN, axis=0, ascending=True, inplace=True)
-
-			states = set(city_list[settings.STATE_COLUMN])
-
-			for state in states:
-
-				#The request must be performed twice, since the first one is redirected
-				get_url_twice(driver, settings.CAR_BASE_URL + state)
-
-				current_cities = city_list[city_list[settings.STATE_COLUMN] == state]
-
-				car_city_elements = driver.find_elements_by_class_name('item-municipio')
-
-				city_names = []
-
-				for element in car_city_elements:
-
-					city_names.append(element.text.lower())
-
-				for idx_row , row in current_cities.iterrows():
-
-					count = 0
-					city = row[settings.CITY_COLUMN].lower()
-
-					dowload_car_with_driver(city, state, driver, model, lb, download_path=download_path, download_image_path=download_image_path)
-
-					time.sleep(1)
 
 	elif (city is not None) and (state is not None):
 
@@ -423,7 +397,8 @@ def download_car(df_cities:Union[pd.DataFrame, None]=None, city=None, state=None
 
 		raise TypeError('You must input a a city and a state, or a shapefile')
 
-	driver.close()
+	if driver is not None:
+		driver.close()
 
 	return df_cities
 
@@ -433,7 +408,11 @@ def get_driver(download_path:Union[str,None]=None, force_print:bool=False):
 	chrome_options = Options()
 	chrome_options.add_argument('--no-sandbox')
 	chrome_options.add_argument("--headless")
-	chrome_options.add_argument('--disable-dev-shm-usage')
+	# chrome_options.add_argument('--disable-dev-shm-usage')
+	chrome_options.add_argument('--no-proxy-server')
+	chrome_options.add_argument("--proxy-server='direct://'")
+	chrome_options.add_argument("--proxy-bypass-list=*")
+	# chrome_options.
 	prefs = {}
 	prefs["profile.default_content_settings.popups"]=0
 	
@@ -443,7 +422,7 @@ def get_driver(download_path:Union[str,None]=None, force_print:bool=False):
 	chrome_options.add_experimental_option("prefs", prefs)
 
 	if force_print: print(f'Initialization of the driver {settings.CHROMEDRIVER_FILE}')
-	driver = webdriver.Chrome(settings.CHROMEDRIVER_FILE, options = chrome_options)
+	driver = webdriver.Chrome(settings.CHROMEDRIVER_FILE, options = chrome_options, )
 	if force_print: print('Driver Initializated')
 
 	return driver

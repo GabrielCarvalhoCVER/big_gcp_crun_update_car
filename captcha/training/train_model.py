@@ -43,7 +43,10 @@ from tensorflow.core.framework.summary_pb2 import Summary
 
 from captcha import settings
 
-def get_letters(img, letter_image_regions):
+import matplotlib.pyplot as plt 
+from typing import Union
+
+def get_letters(img, letter_image_regions, width:int=40, height:int=50 ):
 	regions_num = len(letter_image_regions)
 	
 	letters = []
@@ -62,13 +65,13 @@ def get_letters(img, letter_image_regions):
 	for i in range(5):
 		letter = letters[i]
 		
-		letter = letter[:, 0:40]
+		letter = letter[:, 0:width]
 		
-		square = np.zeros((50, 40))
+		square = np.zeros((height, width))
 		
 		y, x = letter.shape 
 		
-		aux = (40 - x) // 2
+		aux = (width - x) // 2
 		
 		square[:, aux:(aux + x)] = letter
 		
@@ -118,7 +121,7 @@ def set_number_letters(letter_image_regions):
 	
 	return letter_image_regions
 	
-def break_letters(img):
+def break_letters(img, width:int=40 , height:int=50 ):
 	
 	ret, thresh = cv2.threshold(img, 200, 255, cv2.THRESH_BINARY)
 	
@@ -135,42 +138,91 @@ def break_letters(img):
 			letter_image_regions.append({'x': x, 'y': y, 'w': w, 'h': h, 'area': w * h, 'count': 0})
 	
 	letter_image_regions = set_number_letters(letter_image_regions)
-	
-	letters = get_letters(img, letter_image_regions)
-	
+
+	# print('letter_image_regions')
+	# print(letter_image_regions)
+
+	letters = get_letters(img=img, letter_image_regions=letter_image_regions, width=width, height=height)	
+
 	return letters
 
-def train_model(force_print=False):
+def create_neural_network(force_print:bool=False, width:int=40, height:int=50):
+	model = Sequential()
+	
+	if force_print: print('model 0')
+	# model.add(Conv2D(20, (5, 5), padding="same", input_shape=(1, 40, 50), activation="relu", data_format='channels_first'))
+	# model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+	# model.add(Conv2D(20, (5, 5), padding="same", input_shape=(1, 40, 50), activation="relu", data_format='channels_last'))
+	# model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding='same', data_format='channels_last'))
+	# model.add(Conv2D(filters=20, kernel_size=(5, 5), padding="same", input_shape=(1, 40, 50), activation="relu", data_format='channels_first',))
+	# model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding='same', data_format='channels_first'))
+	# model.add(Conv2D(filters=20, kernel_size=(5, 5), padding="same", input_shape=(1, 40, 50), activation="relu", data_format='channels_first'))
+	# model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding='same', data_format='channels_first'))
+	# model.add(Conv2D(filters=20, kernel_size=(5, 5), padding="same", input_shape=( 50, 40 , 1) , activation="relu"))
+	
+	model.add(Conv2D(filters=20, kernel_size=(5, 5), padding="same", input_shape=(height, width, 1 ) , activation="relu"))
+	model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding="same"))
 
-	files = sorted(os.listdir(settings.PREPROCESSED_CAPTCHA_FOLDER))
+	model.add(Conv2D(filters=50, kernel_size=(5, 5), padding="same", activation="relu"))
+	model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding="same"))
+
+	model.add(Flatten())
+	model.add(Dense(500, activation="relu"))
+
+	model.add(Dense(62, activation="softmax"))
+
+	model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
+
+	return model 
+
+def train_model(folderpath_preprocessed:str=settings.PREPROCESSED_CAPTCHA_FOLDER , width:int=40, height:int=50 , n_samples:Union[int,None]=None, save_model:bool=True, force_print:bool=False):
+
+	files = sorted(os.listdir(folderpath_preprocessed))
 	if force_print: print(f'len(files) [{len(files)}]')
+	if force_print: print(f'folderpath_preprocessed {folderpath_preprocessed}')
+	if force_print: print(files[0:5])
+
 
 	captchas = [bool(re.match(settings.PREPROCESSED_CAPTCHA_PATTERN, i)) for i in files]
 	if force_print: print(f'len(captchas) [{len(captchas)}]')
+	if force_print : print(f'settings.PREPROCESSED_CAPTCHA_PATTERN {settings.PREPROCESSED_CAPTCHA_PATTERN}')
 
 	captchas = list(compress(files, captchas))
 	if force_print: print(f'len(captchas) [{len(captchas)}]')
 
+	if n_samples is not None:
+		captchas = captchas[0:n_samples]
+		
 	test_info = pd.read_csv(settings.TRAINING_ANSWERS_FILE)
 	if force_print: print(f'len(test_info) [{len(test_info)}]')
 
 	# test_info.sort_values(by = 'sample_name', ascending=True, inplace = True)
-	test_info.sort_values(by = 'number', ascending=True, inplace = True)
+	test_info.sort_values(by = 'sample_name', ascending=True, inplace = True)
 
-	answers   = test_info['answer']
+	answers   = test_info['sample_answer']
 
 	X = []
 
 	y = []
+	
+	n_samples = len(captchas)
 
-	for i in range(len(captchas)):
+	for i, captcha in enumerate(captchas,0):
 
-		captcha = captchas[i]
-
-		captcha = cv2.imread(os.path.join(settings.PREPROCESSED_CAPTCHA_FOLDER , captcha), cv2.IMREAD_GRAYSCALE)
+		if (i+1)%500==0:
+			print(f'{i+1} of {n_samples} [{round(float(i+1)/float(n_samples)*100,1)}%]')
 		
+		# print()
+		# print(f'answers {answers[i]}')
+
+		captcha = cv2.imread(os.path.join(folderpath_preprocessed , captcha), cv2.IMREAD_GRAYSCALE)
+		
+		# print(answers[i])
+		# plt.figure()
+		# plt.imshow(captcha)
+
 		try:
-			letters = break_letters(captcha)
+			letters = break_letters(captcha, width=width , height=height)
 		except:
 			continue
 				
@@ -182,10 +234,19 @@ def train_model(force_print=False):
 
 			# print(dir(letter))
 			# print()
-			letter  = letter.reshape(1, 50, 40)
-			# letter  = letter.reshape(50, 40, 1)
+			# plt.figure()
+			# plt.imshow(letter)	
 
-			letter = letter.T
+			# letter  = letter.reshape(1, 50, 40)
+			letter  = letter.reshape(height, width ,1 )
+
+			# plt.figure()
+			# plt.imshow(letter)	
+
+			# letter = letter.T
+
+			# plt.figure()
+			# plt.imshow(letter)	
 
 			X.append(letter)
 
@@ -213,50 +274,19 @@ def train_model(force_print=False):
 
 	Y_test = lb.transform(Y_test)
 
-	model = Sequential()
+	model = create_neural_network(force_print=force_print, width=width, height=height)
 	
-	if force_print: print('model 0')
-	# model.add(Conv2D(20, (5, 5), padding="same", input_shape=(1, 40, 50), activation="relu", data_format='channels_first'))
-	# model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
-	# model.add(Conv2D(20, (5, 5), padding="same", input_shape=(1, 40, 50), activation="relu", data_format='channels_last'))
-	# model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding='same', data_format='channels_last'))
-	# model.add(Conv2D(filters=20, kernel_size=(5, 5), padding="same", input_shape=(1, 40, 50), activation="relu", data_format='channels_first',))
-	# model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding='same', data_format='channels_first'))
-	# model.add(Conv2D(filters=20, kernel_size=(5, 5), padding="same", input_shape=(1, 40, 50), activation="relu", data_format='channels_first',))
-	# model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding='same', data_format='channels_first'))
-	model.add(Conv2D(filters=20, kernel_size=(5, 5), padding="same", input_shape=( 40, 50, 1) , activation="relu"))
-	# model.add(Conv2D(filters=conv2d_filters_1, kernel_size=(5, 5), padding="same", input_shape=(1, 40, 50), activation="relu"))
-	model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding="same"))
-
-	if force_print: print('model 1')
-	# model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
-	# model.add(Conv2D(50, (5, 5), padding="same", activation="relu", data_format='channels_last'))
-	# model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding='same', data_format='channels_last'))
-	model.add(Conv2D(filters=50, kernel_size=(5, 5), padding="same", activation="relu"))
-	model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding="same"))
-
-	if force_print: print('model 2')
-	model.add(Flatten())
-	if force_print: print('model 3')
-	model.add(Dense(500, activation="relu"))
-
-	if force_print: print('model 4')
-	model.add(Dense(62, activation="softmax"))
-	# model.add(Dense(62, activation="softmax"))
-
-	if force_print: print('model 5')
-	model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
-
 	if force_print: print('model 6')
 	model.fit(X_train, Y_train, validation_data=(X_test, Y_test), batch_size=settings.BATCH_SIZE, epochs=settings.EPOCHS, verbose=settings.VERBOSE)
 	# model.fit(X_train, Y_train, validation_data=(X_test, Y_test), batch_size=32, epochs=settings.EPOCHS, verbose=settings.VERBOSE)
 
 
 	if force_print: print('model 7')
-	if not os.path.isdir(settings.OUTPUT_MODEL_FOLDER):
+	if save_model:
+		if not os.path.isdir(settings.OUTPUT_MODEL_FOLDER):
 
-		os.mkdir(settings.OUTPUT_MODEL_FOLDER)
+			os.mkdir(settings.OUTPUT_MODEL_FOLDER)
 
-	model.save(settings.CLASSIFIER_OUTPUT_FILE)
+		model.save(settings.CLASSIFIER_OUTPUT_FILE)
 
-	dump(lb, settings.ENCODER_OUTPUT_FILE)
+		dump(lb, settings.ENCODER_OUTPUT_FILE)

@@ -26,6 +26,8 @@ import platform
 # CAPTCHA breaker settings
 if platform.system() == 'Linux':
 	CAPTCHA_MODEL_FOLDER = os.path.realpath(os.path.join(__file__, os.pardir, os.pardir, 'captcha_model'))
+	# CAPTCHA_FOLDER = '/mnt/g/Drives compartilhados/[CAR] Captcha'
+	CAPTCHA_FOLDER = '/mnt/c/Users/gabriel.carvalho/OneDrive - CASA DOS VENTOS ENERGIAS RENOVAVEIS S A/CAR Captchas'
 	# TRAINED_MODEL_FOLDER = os.path.abspath('/mnt/g/Drives compartilhados/Data Science/5. DADOS/CAPTCHA/modelo treinado/')
 	# FONT_PATH = os.path.abspath('/mnt/g/Drives compartilhados/Data Science/5. DADOS/CAPTCHA/modelo treinado/')
 	TRAINED_MODEL_FOLDER = os.path.join(CAPTCHA_MODEL_FOLDER, 'modelo treinado')
@@ -38,8 +40,8 @@ else:
 
 	raise Exception('Platform not supported')
 
-CLASSIFIER_MODEL_FILE	= os.path.join(TRAINED_MODEL_FOLDER, 'model2.h5')
-LABEL_ENCODER_FILE		= os.path.join(TRAINED_MODEL_FOLDER, 'lb2.joblib')
+CLASSIFIER_MODEL_FILE	= os.path.join(TRAINED_MODEL_FOLDER, 'model3.h5')
+LABEL_ENCODER_FILE		= os.path.join(TRAINED_MODEL_FOLDER, 'lb3.joblib')
 
 # CAPTCHA training settings
 
@@ -61,22 +63,22 @@ POLYLINE_THICKNESS	= 2
 
 # File names
 # GENERATED_CAPTCHA_FOLDER	 = './samples/'
-GENERATED_CAPTCHA_FOLDER		= os.path.join(CAPTCHA_MODEL_FOLDER, 'from_sicar')
-PREPROCESSED_CAPTCHA_FOLDER  	= GENERATED_CAPTCHA_FOLDER
+GENERATED_CAPTCHA_FOLDER		= os.path.join(CAPTCHA_FOLDER, 'Generated')
+PREPROCESSED_CAPTCHA_FOLDER  	= os.path.join(CAPTCHA_FOLDER, 'Preprocessed')
 # PREPROCESSED_CAPTCHA_FOLDER = os.path.join(CAPTCHA_MODEL_FOLDER, 'from_sicar')
 OUTPUT_MODEL_FOLDER				= TRAINED_MODEL_FOLDER
 CLASSIFIER_OUTPUT_FILE			= os.path.join(OUTPUT_MODEL_FOLDER, 'model3.h5')
 ENCODER_OUTPUT_FILE				= os.path.join(OUTPUT_MODEL_FOLDER, 'lb3.joblib')
-TRAINING_ANSWERS_FILE			= os.path.join(GENERATED_CAPTCHA_FOLDER, 'answers.csv')
+TRAINING_ANSWERS_FILE			= os.path.join(GENERATED_CAPTCHA_FOLDER,'answers.csv')
 
 # Image naming settings
 SAMPLE_NAME_FORMAT				= 'sample_{:06d}'
-PREPROCESSED_NAME_FORMAT		= 'processed_sample_{:06d}'
-GENERATED_CAPTCHA_PATTERN		= 'captcha_+([0-9]?)+\\.png'
-PREPROCESSED_CAPTCHA_PATTERN	= 'captcha_+([0-9]?)+\\.bmp'
+PREPROCESSED_NAME_FORMAT		= 'preprocessed_sample_{:06d}'
+GENERATED_CAPTCHA_PATTERN		= 'sample_+([0-9]?)+\\.png'
+PREPROCESSED_CAPTCHA_PATTERN	= 'preprocessed_sample_+([0-9]?)+\\.bmp'
 
 # Convolutional NN parameters
 BATCH_SIZE	= 32
 # BATCH_SIZE	= 8
-EPOCHS		= 20
+EPOCHS		= 1
 VERBOSE		= 1
