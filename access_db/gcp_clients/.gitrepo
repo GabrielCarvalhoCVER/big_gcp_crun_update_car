@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://github.com/Casa-dos-Ventos/gcp_clients
 	branch = main
-	commit = d8315b013fdd5a47f9246b1df138460fb54e15b1
-	parent = 0db4a0562d1c1561dc6892737f4cf5ccedaf8a16
+	commit = 39776cb35dc95e6bfc1273e30ca70c96ce2a5e99
+	parent = c7a46e7f2148ffad0e8b8419116c7ce652be383b
 	method = merge
 	cmdver = 0.4.3
