@@ -310,6 +310,11 @@ def download_car(df_cities:Union[pd.DataFrame, None]=None, city=None, state=None
 
 			df_file_state = pd.DataFrame()
 
+			if force_print:
+				print_end='\n'
+			else:
+				print_end ='\r'
+				
 			for state in states:
 
 				print('')
@@ -324,13 +329,18 @@ def download_car(df_cities:Union[pd.DataFrame, None]=None, city=None, state=None
 
 					count = count+1
 					# print('')
-					print(f'------------------------------------------------------{count} of {n_row}------------------------------------------------------')
+					print_count = f'{get_datetime_str()} - {count} of {n_row} - City selected : '
+					# print(f'------------------------------------------------------------------------------------------------------------')
 
 					city = row[settings.CITYID_COLUMN]
+					
 					try:
-						print(f'{get_datetime_str()} - City selected : {(row[settings.CITY_COLUMN])} [{state}] ({city})')
+						print_city = f'{(row[settings.CITY_COLUMN])} [{state}] ({city})'
 					except:
-						print(f'{get_datetime_str()} - City selected : [{state}] ({city})')
+						print_city = f'[{state}] ({city})'
+
+
+					print(f'{print_count} {print_city} -----------------------------------------------' , end=print_end)
 
 					start_city_time = get_now_sp()
 
