@@ -140,10 +140,10 @@ def get_cars_gdf(car_file:str, path_car_folder:str, df_cities:Union[pd.DataFrame
 	n_row = len(files_car)
 	gdfs_car = gpd.GeoDataFrame()
 	if return_bbox: bbox_car = {}
-
+	print()
 	for idx, name in enumerate(files_car,1): 
 		if idx%20==0:
-			print(f'{idx}  of {n_row}')
+			print(f'{idx}  of {n_row}',end='\r')
 
 		# print(f'path_car_folder {path_car_folder}')
 		path_car_file = os.path.join(path_car_folder, name)
@@ -155,6 +155,7 @@ def get_cars_gdf(car_file:str, path_car_folder:str, df_cities:Union[pd.DataFrame
 			print(f'{idx}  of {n_row}')
 			print(name)
 			print(f'error : {e}')
+			print()
 		# print(name)
 	# print('oi')
 	# gdfs_car = gdfs_car.drop(columns=['gid'])
