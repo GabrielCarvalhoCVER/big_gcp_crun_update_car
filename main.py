@@ -14,6 +14,7 @@ import glob
 from io import BytesIO
 import shapefile
 from car_functions import download_car
+from geoserver_api.geoserver_api import *
 
 app = Flask(__name__)
 
@@ -276,36 +277,42 @@ def run_get_cars(df_cities:pd.DataFrame, gdrive_client:Union[GDrive_Client,None]
 	download_car(df_cities=df_cities, download_path=path_car_folder, force_print=force_print)
 
 	########################################################################################################################
-	print()	
-	print('#'*200)	
-	print()	
-	print(f'{str(get_now_sp())[:19]} - reading area_imovel')
-	cars_gdf_imovel, bbox_imovel = get_cars_gdf(car_file='area_imovel', path_car_folder=path_car_folder, df_cities=df_cities, return_bbox=True)
-	print(f'{str(get_now_sp())[:19]} - len {len(cars_gdf_imovel)}')
+	print()
+	print('#'*200)
+	print()
+	print(f'{str(get_now_sp())[:19]} - area_imovel - reading ')
+	cars_gdf_imovel = get_cars_gdf(car_file='area_imovel', path_car_folder=path_car_folder, df_cities=df_cities)
+	print(f'{str(get_now_sp())[:19]} - area_imovel - len {len(cars_gdf_imovel)}')
 	
 	if update:
 		engrawconn_db, engrawconn_db_none = get_eng_and_rawconn(engrawconn_db=engrawconn_db)
 		upd_cars_imovel = update_db(gdf=cars_gdf_imovel, schema='externo',table='carimovel_upload', crud=crud, crud_function='function_carimovel_crud', force_print=force_print, updateIdValues=df_cities[settings.CITYID_COLUMN].to_list() )
 
-		print(f'{str(get_now_sp())[:19]} - upd_cars_imovel {upd_cars_imovel}')
+		print(f'{str(get_now_sp())[:19]} - area_imovel -  update {upd_cars_imovel}')
 
 	########################################################################################################################
 
 	print()	
 	print('#'*200)	
 	print()	
-	print(f'{str(get_now_sp())[:19]} - reading reserva_legal')
+	print(f'{str(get_now_sp())[:19]} - reserva_legal - reading')
 	cars_gdf_reserva = get_cars_gdf(car_file='reserva_legal', path_car_folder=path_car_folder, df_cities=df_cities)
 	# print(cars_df)
-	print(f'{str(get_now_sp())[:19]} - len {len(cars_gdf_reserva)}')
+	print(f'{str(get_now_sp())[:19]} - reserva_legal - len {len(cars_gdf_reserva)}')
 	
 	if update:
 		upd_cars_reserva = update_db(gdf=cars_gdf_reserva, schema='externo',table='carreserva_upload', crud=crud, crud_function='function_carreserva_crud', force_print=force_print, updateIdValues=df_cities[settings.CITYID_COLUMN].to_list())
 	
-		print(f'{str(get_now_sp())[:19]} - upd_cars_reserva {upd_cars_reserva}')
+		print(f'{str(get_now_sp())[:19]} - reserva_legal -  update {upd_cars_reserva}')
 
 		close_rawconn_and_disp_eng(engrawconn_db=engrawconn_db , engrawconn_db_none=engrawconn_db_none)
+		
+		from gcp_clients.gcp_client_secretmanager import SecretManager_Client
+		geoserver_cver = SecretManager_Client().get_secret(secret_id = 'geoserver_cver' , project_id= 'gisbicnet-3')
+		geoserver_cver['url'] = 'http://35.225.28.143/geoserver/gwc/rest/seed/'
 
+		geoserver_api_seed(url=geoserver_cver['url'], layer = 'gtcver:carnew', login=geoserver_cver['login'], password=geoserver_cver['password'], payloadtype = 'truncate' , zoomStart= 1, zoomStop=24)
+	
 	print()	
 	print('#'*200)	
 
@@ -317,7 +324,7 @@ def run_get_cars(df_cities:pd.DataFrame, gdrive_client:Union[GDrive_Client,None]
 		print(list(set(upd_cars_reserva + upd_cars_imovel)))
 		if list(set(upd_cars_reserva + upd_cars_imovel)) == ['executed'] :
 			upsert_db(gdf=df_cities_w_dtdownload , schema='externo', table='car_datadownload', force_print=False)
-			print(f'{str(get_now_sp())[:19]} - upsert em car_datadownload ok')
+			print(f'{str(get_now_sp())[:19]} - car_datadownload - upsert em ok')
 
 	########################################################################################################################
 
