@@ -12,7 +12,7 @@ click==8.0.1
 google-api-python-client==2.11.0
 google-auth==1.32.1
 fastkml==0.11
-lxml==4.6.3
+lxml==4.9.1
 google-auth-oauthlib==0.4.4
 google-cloud-secret-manager==2.5.0
 shapely==1.8a3
