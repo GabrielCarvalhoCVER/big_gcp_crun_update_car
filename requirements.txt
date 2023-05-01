@@ -1,5 +1,5 @@
 pandas==1.2.5
-flask==2.0.1
+flask==2.3.2
 sqlalchemy==1.4.20
 oauth2client==4.1.3
 psycopg2==2.9.1
